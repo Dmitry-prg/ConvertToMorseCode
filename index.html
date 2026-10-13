@@ -6,7 +6,16 @@
 <meta name="theme-color" content="#0a0e13">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Морзе">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="format-detection" content="telephone=no">
+<meta name="description" content="Конвертер текста в азбуку Морзе с воспроизведением аудиосигналов.">
+
+<!-- PWA -->
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icon.png">
+<link rel="apple-touch-icon" href="icon.png">
+
 <title>Конвертер в азбуку Морзе</title>
 <style>
   :root {
@@ -103,6 +112,12 @@
     h1 { margin-bottom: 8px; }
   }
 
+  .header-actions {
+    display: flex;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
   .icon-btn {
     flex: 0 0 auto;
     width: 44px;
@@ -115,8 +130,9 @@
     background: linear-gradient(180deg, rgba(255,255,255,.03), transparent), var(--panel);
     color: var(--text);
     cursor: pointer;
-    transition: transform .15s, border-color .15s, color .15s;
+    transition: transform .15s, border-color .15s, color .15s, opacity .2s;
     touch-action: manipulation;
+    position: relative;
   }
   .icon-btn:active {
     transform: scale(.92);
@@ -129,6 +145,22 @@
       color: var(--accent);
       transform: rotate(35deg);
     }
+  }
+
+  .icon-btn.install {
+    background: linear-gradient(180deg, rgba(255,196,110,.18), rgba(255,180,84,.06));
+    border-color: rgba(255,180,84,.45);
+    color: var(--accent);
+    box-shadow: 0 0 22px -8px rgba(255,180,84,.75);
+    animation: installPulse 2.4s ease-in-out infinite;
+  }
+  .icon-btn.install:active { transform: scale(.92); }
+  @media (hover: hover) {
+    .icon-btn.install:hover { transform: rotate(0deg) scale(1.05); }
+  }
+  @keyframes installPulse {
+    0%, 100% { box-shadow: 0 0 22px -8px rgba(255,180,84,.75); }
+    50%      { box-shadow: 0 0 26px -4px rgba(255,180,84,1); }
   }
 
   /* ---------- Pages ---------- */
@@ -175,7 +207,7 @@
     color: var(--text);
     padding: 12px 14px;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
-    font-size: 16px; /* предотвращает зум на iOS */
+    font-size: 16px;
     line-height: 1.6;
     resize: vertical;
     outline: none;
@@ -536,7 +568,6 @@
     to   { opacity: 1; transform: none; }
   }
 
-  /* ручка для свайпа */
   .modal::before {
     content: "";
     display: block;
@@ -683,7 +714,50 @@
     .modal-foot button { flex: 0 0 auto; padding: 10px 24px; font-size: 14px; }
   }
 
-  /* ---------- Улучшение на очень узких экранах ---------- */
+  /* ---------- PWA install toast ---------- */
+  .install-toast {
+    position: fixed;
+    left: 50%;
+    bottom: calc(84px + var(--safe-bottom));
+    transform: translateX(-50%) translateY(20px);
+    max-width: calc(100% - 24px - var(--safe-left) - var(--safe-right));
+    width: 380px;
+    padding: 14px 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,.04), transparent 50%), var(--panel);
+    border: 1px solid rgba(255,180,84,.35);
+    border-radius: 14px;
+    box-shadow: 0 20px 50px -12px rgba(0,0,0,.85), 0 0 30px -10px rgba(255,180,84,.5);
+    z-index: 90;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .3s, transform .3s;
+  }
+  .install-toast.show {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+    pointer-events: auto;
+  }
+  .install-toast .icon { font-size: 22px; flex-shrink: 0; }
+  .install-toast .text { flex: 1; min-width: 0; }
+  .install-toast .text b { display: block; font-size: 13.5px; margin-bottom: 2px; }
+  .install-toast .text span { font-size: 12px; color: var(--muted); }
+  .install-toast button {
+    padding: 9px 14px;
+    font-size: 13px;
+    min-height: 38px;
+  }
+
+  @media (max-width: 380px) {
+    .install-toast { padding: 12px; gap: 10px; }
+    .install-toast .icon { font-size: 18px; }
+    .install-toast .text b { font-size: 12.5px; }
+    .install-toast button { padding: 8px 10px; font-size: 12px; }
+  }
+
+  /* ---------- Очень узкие экраны ---------- */
   @media (max-width: 360px) {
     h1 { font-size: 17px; gap: 8px; }
     h1 .sig i.dash { width: 16px; }
@@ -697,7 +771,6 @@
     #display { max-height: 280px; }
   }
 
-  /* уменьшение анимаций для пользователей, которые их отключили */
   @media (prefers-reduced-motion: reduce) {
     *, *::before, *::after {
       animation-duration: .001ms !important;
@@ -717,7 +790,10 @@
       </h1>
       <p class="sub">Введите текст или загрузите файл — конвертер озвучит его сигналами Морзе.</p>
     </div>
-    <button class="icon-btn" id="settingsBtn" title="Настройки сигнала" aria-label="Настройки сигнала">⚙</button>
+    <div class="header-actions">
+      <button class="icon-btn install" id="installBtn" title="Установить приложение" aria-label="Установить приложение" hidden>⬇</button>
+      <button class="icon-btn" id="settingsBtn" title="Настройки сигнала" aria-label="Настройки сигнала">⚙</button>
+    </div>
   </header>
 
   <!-- ============ СТРАНИЦА 1: ТЕКСТ / ФАЙЛ ============ -->
@@ -822,9 +898,102 @@
   </div>
 </div>
 
+<!-- ============ ТОСТ УСТАНОВКИ PWA ============ -->
+<div class="install-toast" id="installToast" role="status" aria-live="polite">
+  <span class="icon">📲</span>
+  <div class="text">
+    <b>Установить приложение?</b>
+    <span>Работает офлайн, добавляется на главный экран.</span>
+  </div>
+  <button class="primary" id="installToastBtn">Установить</button>
+</div>
+
 <script>
 /* ============================================================
-   Таблица азбуки Морзе (латиница + кириллица + цифры + знаки)
+   Регистрация Service Worker (PWA)
+   ============================================================ */
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(reg => {
+        // Проверка обновлений при каждой загрузке
+        reg.update().catch(() => {});
+      })
+      .catch(err => {
+        console.warn('SW registration failed:', err);
+      });
+  });
+}
+
+/* ============================================================
+   PWA — установка приложения
+   ============================================================ */
+let deferredPrompt = null;
+
+const isStandalone = () =>
+  window.matchMedia('(display-mode: standalone)').matches ||
+  window.navigator.standalone === true;
+
+const installBtn = document.getElementById('installBtn');
+const installToast = document.getElementById('installToast');
+const installToastBtn = document.getElementById('installToastBtn');
+
+let toastTimer = null;
+
+function showInstallUI() {
+  if (isStandalone()) return;
+  if (installBtn) installBtn.hidden = false;
+  if (installToast) {
+    installToast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => {
+      installToast.classList.remove('show');
+    }, 12000);
+  }
+}
+
+function hideInstallUI() {
+  if (installBtn) installBtn.hidden = true;
+  if (installToast) installToast.classList.remove('show');
+  clearTimeout(toastTimer);
+}
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  showInstallUI();
+});
+
+async function triggerInstall() {
+  if (!deferredPrompt) return;
+  hideInstallUI();
+  deferredPrompt.prompt();
+  try {
+    const choice = await deferredPrompt.userChoice;
+    if (choice && choice.outcome === 'accepted') {
+      console.log('PWA установлено');
+    } else {
+      console.log('Установка отклонена');
+    }
+  } catch (err) {
+    console.warn(err);
+  }
+  deferredPrompt = null;
+}
+
+if (installBtn) installBtn.addEventListener('click', triggerInstall);
+if (installToastBtn) installToastBtn.addEventListener('click', triggerInstall);
+
+window.addEventListener('appinstalled', () => {
+  hideInstallUI();
+  deferredPrompt = null;
+});
+
+// Если уже установлено — ничего не показываем
+if (isStandalone()) hideInstallUI();
+
+/* ============================================================
+   Таблица азбуки Морзе
    ============================================================ */
 const MORSE = {
   'A':'.-',    'B':'-...',  'C':'-.-.',  'D':'-..',   'E':'.',
@@ -861,9 +1030,6 @@ const escapeHtml = s => s.replace(/[&<>"']/g,
 const MAX_RENDER = 2500;
 const MAX_TEXT_LEN = 20000;
 
-/* ============================================================
-   DOM
-   ============================================================ */
 const els = {
   text:     $('text'),
   fileBtn:  $('fileBtn'),
@@ -893,9 +1059,6 @@ const els = {
   tabBadge: $('tabBadge')
 };
 
-/* ============================================================
-   Состояние
-   ============================================================ */
 const state = {
   chars: [],
   charMap: new Map(),
@@ -910,9 +1073,6 @@ const state = {
   raf: null
 };
 
-/* ============================================================
-   Настройки
-   ============================================================ */
 const getWpm  = () => +els.wpm.value;
 const getFreq = () => +els.freq.value;
 const getVol  = () => (+els.vol.value) / 100;
@@ -946,9 +1106,6 @@ function buildChars(raw) {
   return { chars, norm, unknown };
 }
 
-/* ============================================================
-   Символы → временная шкала событий
-   ============================================================ */
 function buildEvents(chars, unit) {
   const events = [];
   let t = 0;
@@ -1201,7 +1358,7 @@ function resetVisual() {
 }
 
 /* ============================================================
-   Визуализация текста
+   Визуализация
    ============================================================ */
 function renderDisplay() {
   let source = els.text.value;
@@ -1286,7 +1443,7 @@ function loadFile(file) {
 }
 
 /* ============================================================
-   Экспорт в WAV
+   Экспорт WAV
    ============================================================ */
 function audioBufferToWav(buffer) {
   const numCh = buffer.numberOfChannels;
@@ -1393,16 +1550,13 @@ async function downloadWav() {
   }
 }
 
-/* ============================================================
-   Статус
-   ============================================================ */
 function setStatus(msg, type = '') {
   els.status.textContent = msg;
   els.status.className = 'status' + (type ? ' ' + type : '');
 }
 
 /* ============================================================
-   Переключение вкладок / страниц
+   Переключение вкладок
    ============================================================ */
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t =>
@@ -1472,7 +1626,6 @@ els.fileInput.addEventListener('change', e => {
   e.target.value = '';
 });
 
-// Drag & drop
 ['dragenter', 'dragover'].forEach(evt => {
   els.dropzone.addEventListener(evt, e => {
     e.preventDefault();
@@ -1497,7 +1650,6 @@ els.dropzone.addEventListener('drop', e => {
 window.addEventListener('dragover', e => e.preventDefault());
 window.addEventListener('drop', e => e.preventDefault());
 
-// Ползунки
 els.wpm.addEventListener('input', () => {
   els.wpmVal.textContent = els.wpm.value;
   if (state.playing) { play(); }
