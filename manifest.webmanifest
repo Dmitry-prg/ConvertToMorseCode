@@ -1,0 +1,49 @@
+{
+  "name": "Конвертер в азбуку Морзе",
+  "short_name": "Морзе",
+  "description": "Конвертер текста в азбуку Морзе с воспроизведением аудиосигналов.",
+  "lang": "ru",
+  "dir": "ltr",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "display_override": ["standalone", "minimal-ui", "browser"],
+  "orientation": "portrait-primary",
+  "background_color": "#0a0e13",
+  "theme_color": "#0a0e13",
+  "categories": ["utilities", "education", "productivity"],
+  "icons": [
+    {
+      "src": "icon.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon.png",
+      "sizes": "any",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Текст / файл",
+      "short_name": "Ввод",
+      "description": "Открыть вкладку ввода текста",
+      "url": "./?tab=input"
+    },
+    {
+      "name": "Воспроизведение",
+      "short_name": "Плеер",
+      "description": "Открыть вкладку воспроизведения",
+      "url": "./?tab=play"
+    }
+  ]
+}
