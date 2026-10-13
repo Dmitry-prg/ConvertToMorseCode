@@ -1,0 +1,1350 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Симулятор азбуки Морзе</title>
+<style>
+  :root {
+    --bg: #0a0e13;
+    --panel: #121821;
+    --panel-2: #0e141b;
+    --border: #1e2833;
+    --text: #e6edf3;
+    --muted: #7d8b99;
+    --accent: #ffb454;
+    --accent-2: #ffd08a;
+    --accent-dim: #7a5620;
+    --green: #4ade80;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body { height: 100%; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    padding: 22px 16px 110px;
+    background:
+      radial-gradient(1100px 520px at 15% -12%, #17242f 0%, transparent 62%),
+      radial-gradient(900px 500px at 95% 0%, #1d1a12 0%, transparent 55%),
+      var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .wrap { max-width: 1180px; margin: 0 auto; }
+
+  /* ---------- Header ---------- */
+  header {
+    margin-bottom: 22px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  header > div { min-width: 0; }
+
+  h1 {
+    margin: 0 0 8px;
+    font-size: clamp(21px, 3.2vw, 30px);
+    letter-spacing: -0.02em;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-weight: 700;
+    flex-wrap: wrap;
+  }
+
+  h1 .sig { display: inline-flex; align-items: center; gap: 6px; }
+  h1 .sig i {
+    display: block;
+    background: var(--accent);
+    border-radius: 3px;
+    box-shadow: 0 0 14px rgba(255, 180, 84, .55);
+  }
+  h1 .sig i.dot { width: 8px; height: 8px; }
+  h1 .sig i.dash { width: 24px; height: 8px; }
+
+  .sub { margin: 0; color: var(--muted); font-size: 15px; }
+
+  .icon-btn {
+    flex: 0 0 auto;
+    width: 46px;
+    height: 46px;
+    display: grid;
+    place-items: center;
+    font-size: 20px;
+    border-radius: 13px;
+    border: 1px solid var(--border);
+    background: linear-gradient(180deg, rgba(255,255,255,.03), transparent), var(--panel);
+    color: var(--text);
+    cursor: pointer;
+    transition: .15s;
+  }
+  .icon-btn:hover {
+    border-color: var(--accent-dim);
+    color: var(--accent);
+    transform: rotate(35deg);
+  }
+  .icon-btn:active { transform: rotate(35deg) scale(.95); }
+
+  /* ---------- Pages ---------- */
+  .page {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    animation: pageIn .3s ease;
+  }
+  .page[hidden] { display: none; }
+
+  @keyframes pageIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .card {
+    background: linear-gradient(180deg, rgba(255,255,255,.018), transparent 40%), var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 18px;
+  }
+
+  .card h2 {
+    margin: 0 0 14px;
+    font-size: 12px;
+    letter-spacing: .14em;
+    text-transform: uppercase;
+    color: var(--muted);
+    font-weight: 600;
+  }
+
+  /* ---------- Textarea ---------- */
+  textarea {
+    width: 100%;
+    min-height: 220px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    color: var(--text);
+    padding: 13px 15px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 14px;
+    line-height: 1.65;
+    resize: vertical;
+    outline: none;
+    transition: border-color .15s, box-shadow .15s;
+  }
+  textarea:focus {
+    border-color: var(--accent-dim);
+    box-shadow: 0 0 0 3px rgba(255, 180, 84, .09);
+  }
+  textarea::placeholder { color: #55636f; }
+
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    margin-top: 12px;
+  }
+  .row.buttons { margin-top: 16px; }
+
+  button {
+    font: inherit;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    background: #18212b;
+    color: var(--text);
+    padding: 10px 16px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: background .15s, border-color .15s, transform .08s, filter .15s, opacity .15s;
+    white-space: nowrap;
+  }
+  button:hover:not(:disabled) { background: #1f2b38; border-color: #2d3d4c; }
+  button:active:not(:disabled) { transform: translateY(1px); }
+  button:disabled { opacity: .38; cursor: not-allowed; }
+
+  button.primary {
+    background: linear-gradient(180deg, #ffc46e, #ef9f33);
+    border-color: #c98a2e;
+    color: #1a1206;
+    font-weight: 650;
+    box-shadow: 0 6px 22px -8px rgba(255, 170, 60, .8);
+  }
+  button.primary:hover:not(:disabled) { filter: brightness(1.07); }
+
+  button.ghost {
+    background: transparent;
+    border-color: #22303c;
+    color: var(--muted);
+  }
+  button.ghost:hover:not(:disabled) { color: var(--text); border-color: #33465a; background: rgba(255,255,255,.03); }
+
+  .next-btn {
+    align-self: flex-start;
+    margin-top: 4px;
+  }
+
+  .dropzone {
+    margin-top: 12px;
+    border: 1.5px dashed #26333f;
+    border-radius: 11px;
+    padding: 16px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 13px;
+    transition: .15s;
+  }
+  .dropzone.hover {
+    border-color: var(--accent);
+    background: rgba(255, 180, 84, .06);
+    color: var(--accent-2);
+  }
+
+  .muted { color: var(--muted); }
+  .small { font-size: 12.5px; }
+
+  /* ---------- Current symbol ---------- */
+  .current {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 22px;
+    min-height: 92px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 13px;
+    padding: 14px 20px;
+    overflow: hidden;
+  }
+  .current .idle { color: #4d5b68; font-size: 14px; letter-spacing: .05em; }
+
+  .cur-letter {
+    font-size: 38px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 46px;
+    text-align: center;
+    line-height: 1;
+    text-shadow: 0 0 26px rgba(255, 180, 84, .35);
+  }
+  .cur-morse {
+    display: flex;
+    gap: 10px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 30px;
+    line-height: 1;
+  }
+  .sym { color: #2c3844; transition: color .05s, transform .05s, text-shadow .05s; }
+  .sym.past { color: #65798a; }
+  .sym.on {
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(255, 180, 84, .95);
+    transform: scale(1.18);
+  }
+
+  /* ---------- Progress ---------- */
+  .progress {
+    height: 6px;
+    background: #18212b;
+    border-radius: 99px;
+    overflow: hidden;
+    margin-top: 14px;
+  }
+  .progress > div {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #ef9f33, var(--accent-2));
+    border-radius: 99px;
+    box-shadow: 0 0 12px rgba(255, 180, 84, .5);
+  }
+
+  .status { margin-top: 12px; font-size: 13px; color: var(--muted); min-height: 18px; }
+  .status.ok { color: var(--green); }
+  .status.warn { color: #f0b429; }
+  .status.err { color: #f87171; }
+
+  /* ---------- Display ---------- */
+  #display {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    max-height: 360px;
+    overflow-y: auto;
+    padding: 10px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    border-radius: 11px;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    scrollbar-width: thin;
+    scrollbar-color: #2a3743 transparent;
+  }
+  #display::-webkit-scrollbar { width: 8px; }
+  #display::-webkit-scrollbar-thumb { background: #2a3743; border-radius: 4px; }
+
+  .ch {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 24px;
+    padding: 5px 4px;
+    border-radius: 7px;
+    border: 1px solid transparent;
+    transition: background .09s, color .09s, border-color .09s;
+  }
+  .ch .ltr { font-size: 15px; font-weight: 650; line-height: 1.2; }
+  .ch .mor { font-size: 11px; color: var(--muted); letter-spacing: 1.5px; line-height: 1.3; margin-top: 2px; }
+
+  .ch.active {
+    background: var(--accent);
+    border-color: var(--accent-2);
+    box-shadow: 0 0 18px -4px rgba(255, 180, 84, .9);
+  }
+  .ch.active .ltr, .ch.active .mor { color: #1a1206; }
+
+  .ch.space { min-width: 12px; }
+  .ch.unknown { opacity: .4; }
+  .ch.unknown .mor { color: #f87171; }
+
+  #note { margin-top: 10px; min-height: 16px; }
+
+  /* ---------- Bottom tabs ---------- */
+  .tabs-bar {
+    position: fixed;
+    left: 0; right: 0; bottom: 0;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    padding: 10px 16px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(10, 14, 19, .82);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
+    border-top: 1px solid var(--border);
+    z-index: 40;
+  }
+  .tabs-bar::before {
+    content: "";
+    position: absolute;
+    left: 0; right: 0; top: -1px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(255,180,84,.25), transparent);
+  }
+  .tabs-inner {
+    grid-column: 1 / -1;
+    max-width: 640px;
+    margin: 0 auto;
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+  .tab {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 12px 14px;
+    font-size: 14px;
+    font-weight: 550;
+    border-radius: 13px;
+    border: 1px solid transparent;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    transition: .18s;
+    position: relative;
+  }
+  .tab:hover:not(.active) { background: rgba(255,255,255,.04); color: var(--text); }
+  .tab.active {
+    background: linear-gradient(180deg, rgba(255,196,110,.16), rgba(255,180,84,.05));
+    border-color: rgba(255,180,84,.4);
+    color: var(--accent);
+    box-shadow: 0 0 24px -8px rgba(255,180,84,.65);
+  }
+  .tab .tab-icon { font-size: 16px; line-height: 1; }
+  .tab .tab-badge {
+    position: absolute;
+    top: 7px;
+    right: 10px;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 99px;
+    background: var(--accent);
+    color: #1a1206;
+    font-weight: 700;
+    display: none;
+  }
+  .tab.has-content .tab-badge { display: inline-block; }
+
+  /* ---------- Modal ---------- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    background: rgba(3, 6, 10, .68);
+    backdrop-filter: blur(7px);
+    -webkit-backdrop-filter: blur(7px);
+    z-index: 100;
+  }
+  .modal-overlay.open {
+    display: flex;
+    animation: fadeIn .18s ease;
+  }
+  @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+  .modal {
+    width: min(470px, 100%);
+    max-height: 88vh;
+    overflow-y: auto;
+    background: linear-gradient(180deg, rgba(255,255,255,.025), transparent 30%), var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow: 0 40px 100px -30px rgba(0,0,0,.85), 0 0 0 1px rgba(255,255,255,.02) inset;
+    animation: modalIn .26s cubic-bezier(.2,.85,.3,1);
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(18px) scale(.97); }
+    to   { opacity: 1; transform: none; }
+  }
+
+  .modal-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 20px 20px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .modal-header h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 650;
+    letter-spacing: -.01em;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .modal-header h3 span { color: var(--accent); font-size: 19px; }
+
+  .close-btn {
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    font-size: 16px;
+    border-radius: 10px;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    flex: 0 0 auto;
+  }
+  .close-btn:hover { color: var(--text); background: #1c2530; border-color: #2c3a48; }
+
+  .modal-body { padding: 20px; }
+
+  .ctrl { margin-bottom: 22px; }
+  .ctrl:last-child { margin-bottom: 4px; }
+
+  .ctrl-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .ctrl-head label {
+    font-size: 13.5px;
+    color: var(--muted);
+    font-weight: 500;
+  }
+  .ctrl-head .val {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+  }
+  .ctrl-head .val small { font-size: 11px; color: var(--muted); font-weight: 500; margin-left: 2px; }
+
+  input[type="range"] {
+    width: 100%;
+    height: 6px;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #1b2530;
+    border-radius: 99px;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #ffd08a, #ef9f33);
+    border: 2px solid #121821;
+    box-shadow: 0 0 0 1px #c98a2e, 0 3px 12px -2px rgba(255,180,84,.9);
+    transition: transform .12s;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover { transform: scale(1.12); }
+  input[type="range"]::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: linear-gradient(180deg, #ffd08a, #ef9f33);
+    border: 2px solid #121821;
+    box-shadow: 0 0 0 1px #c98a2e, 0 3px 12px -2px rgba(255,180,84,.9);
+    cursor: pointer;
+  }
+
+  .modal-foot {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+    padding: 0 20px 20px;
+  }
+
+  @media (max-width: 640px) {
+    body { padding: 16px 12px 108px; }
+    .card { padding: 15px; }
+    .tab { font-size: 13px; padding: 11px 10px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <div>
+      <h1>
+        <span class="sig"><i class="dot"></i><i class="dash"></i><i class="dot"></i></span>
+        Симулятор азбуки Морзе
+      </h1>
+      <p class="sub">Введите текст или загрузите файл — сайт озвучит его сигналами Морзе.</p>
+    </div>
+    <button class="icon-btn" id="settingsBtn" title="Настройки сигнала" aria-label="Настройки сигнала">⚙</button>
+  </header>
+
+  <!-- ============ СТРАНИЦА 1: ТЕКСТ / ФАЙЛ ============ -->
+  <section class="page" id="page-input">
+    <div class="card">
+      <h2>Текст</h2>
+      <textarea id="text" spellcheck="false" placeholder="Введите текст на русском или английском…">Привет, мир! HELLO WORLD 123</textarea>
+
+      <div class="row">
+        <button id="fileBtn">📁 Загрузить файл</button>
+        <input type="file" id="fileInput" accept=".txt,.md,.csv,.log,text/plain" hidden>
+        <span id="fileName" class="muted small"></span>
+      </div>
+
+      <div id="dropzone" class="dropzone">…или перетащите сюда текстовый файл</div>
+    </div>
+
+    <button class="next-btn primary" data-goto="play">Далее: воспроизведение →</button>
+  </section>
+
+  <!-- ============ СТРАНИЦА 2: ВОСПРОИЗВЕДЕНИЕ / ВИЗУАЛИЗАЦИЯ ============ -->
+  <section class="page" id="page-play" hidden>
+    <div class="card">
+      <h2>Воспроизведение</h2>
+
+      <div class="current" id="current"><span class="idle">Ожидание…</span></div>
+
+      <div class="progress"><div id="progressBar"></div></div>
+
+      <div class="row buttons">
+        <button id="playBtn" class="primary">▶ Воспроизвести</button>
+        <button id="stopBtn" disabled>■ Стоп</button>
+        <button id="wavBtn" class="ghost">⬇ Скачать WAV</button>
+      </div>
+
+      <div id="status" class="status"></div>
+    </div>
+
+    <div class="card">
+      <h2>Визуализация</h2>
+      <div id="display"></div>
+      <div id="note" class="muted small"></div>
+    </div>
+
+    <button class="next-btn ghost" data-goto="input">← Назад к тексту</button>
+  </section>
+
+</div>
+
+<!-- ============ НИЖНИЕ ВКЛАДКИ ============ -->
+<nav class="tabs-bar">
+  <div class="tabs-inner">
+    <button class="tab active" data-tab="input">
+      <span class="tab-icon">📝</span>
+      <span>Текст / файл</span>
+    </button>
+    <button class="tab" data-tab="play">
+      <span class="tab-icon">▶</span>
+      <span>Воспроизведение</span>
+      <span class="tab-badge" id="tabBadge">●</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ============ МОДАЛЬНОЕ ОКНО НАСТРОЕК ============ -->
+<div class="modal-overlay" id="settingsModal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="settingsTitle"><span>⚙</span> Настройки сигнала</h3>
+      <button class="close-btn" id="closeSettings" aria-label="Закрыть">✕</button>
+    </div>
+
+    <div class="modal-body">
+      <div class="ctrl">
+        <div class="ctrl-head">
+          <label for="wpm">Скорость передачи</label>
+          <div class="val"><span id="wpmVal">15</span><small>WPM</small></div>
+        </div>
+        <input type="range" id="wpm" min="5" max="40" step="1" value="15">
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-head">
+          <label for="freq">Тон сигнала</label>
+          <div class="val"><span id="freqVal">700</span><small>Гц</small></div>
+        </div>
+        <input type="range" id="freq" min="300" max="1200" step="10" value="700">
+      </div>
+
+      <div class="ctrl">
+        <div class="ctrl-head">
+          <label for="vol">Громкость</label>
+          <div class="val"><span id="volVal">70</span><small>%</small></div>
+        </div>
+        <input type="range" id="vol" min="0" max="100" step="1" value="70">
+      </div>
+    </div>
+
+    <div class="modal-foot">
+      <button id="closeSettings2">Готово</button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ============================================================
+   Таблица азбуки Морзе (латиница + кириллица + цифры + знаки)
+   ============================================================ */
+const MORSE = {
+  'A':'.-',    'B':'-...',  'C':'-.-.',  'D':'-..',   'E':'.',
+  'F':'..-.',  'G':'--.',   'H':'....',  'I':'..',    'J':'.---',
+  'K':'-.-',   'L':'.-..',  'M':'--',    'N':'-.',    'O':'---',
+  'P':'.--.',  'Q':'--.-',  'R':'.-.',   'S':'...',   'T':'-',
+  'U':'..-',   'V':'...-',  'W':'.--',   'X':'-..-',  'Y':'-.--',
+  'Z':'--..',
+
+  '0':'-----', '1':'.----', '2':'..---', '3':'...--', '4':'....-',
+  '5':'.....', '6':'-....', '7':'--...', '8':'---..', '9':'----.',
+
+  '.':'.-.-.-', ',':'--..--', '?':'..--..', "'":'.----.', '!':'-.-.--',
+  '/':'-..-.',  '(':'-.--.',  ')':'-.--.-', '&':'.-...',  ':':'---...',
+  ';':'-.-.-.', '=':'-...-',  '+':'.-.-.',  '-':'-....-', '_':'..--.-',
+  '"':'.-..-.', '$':'...-..-', '@':'.--.-.',
+
+  'А':'.-',    'Б':'-...',  'В':'.--',   'Г':'--.',   'Д':'-..',
+  'Е':'.',     'Ж':'...-',  'З':'--..',  'И':'..',    'Й':'.---',
+  'К':'-.-',   'Л':'.-..',  'М':'--',    'Н':'-.',    'О':'---',
+  'П':'.--.',  'Р':'.-.',   'С':'...',   'Т':'-',     'У':'..-',
+  'Ф':'..-.',  'Х':'....',  'Ц':'-.-.',  'Ч':'---.',  'Ш':'----',
+  'Щ':'--.-',  'Ъ':'--.--', 'Ы':'-.--',  'Ь':'-..-',  'Э':'..-..',
+  'Ю':'..--',  'Я':'.-.-'
+};
+
+/* ============================================================
+   Утилиты
+   ============================================================ */
+const $ = id => document.getElementById(id);
+const escapeHtml = s => s.replace(/[&<>"']/g,
+  c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+
+const MAX_RENDER = 2500;
+const MAX_TEXT_LEN = 20000;
+
+/* ============================================================
+   DOM
+   ============================================================ */
+const els = {
+  text:     $('text'),
+  fileBtn:  $('fileBtn'),
+  fileInput:$('fileInput'),
+  fileName: $('fileName'),
+  dropzone: $('dropzone'),
+
+  wpm: $('wpm'), wpmVal: $('wpmVal'),
+  freq: $('freq'), freqVal: $('freqVal'),
+  vol: $('vol'), volVal: $('volVal'),
+
+  current: $('current'),
+  progressBar: $('progressBar'),
+  playBtn: $('playBtn'),
+  stopBtn: $('stopBtn'),
+  wavBtn:  $('wavBtn'),
+  status:  $('status'),
+
+  display: $('display'),
+  note:    $('note'),
+
+  settingsBtn: $('settingsBtn'),
+  settingsModal: $('settingsModal'),
+  closeSettings: $('closeSettings'),
+  closeSettings2: $('closeSettings2'),
+
+  tabBadge: $('tabBadge')
+};
+
+/* ============================================================
+   Состояние
+   ============================================================ */
+const state = {
+  chars: [],
+  charMap: new Map(),
+  events: [],
+  total: 0,
+  ptr: 0,
+  lastCharIdx: -1,
+  playing: false,
+  ctx: null,
+  nodes: null,
+  t0: 0,
+  raf: null
+};
+
+/* ============================================================
+   Настройки
+   ============================================================ */
+const getWpm  = () => +els.wpm.value;
+const getFreq = () => +els.freq.value;
+const getVol  = () => (+els.vol.value) / 100;
+const getUnit = () => 1.2 / getWpm();   // длительность точки, сек
+
+/* ============================================================
+   Текст → символы
+   ============================================================ */
+function buildChars(raw) {
+  const norm = raw.toUpperCase().replace(/\s+/g, ' ').trim();
+  const chars = [];
+  let unknown = 0;
+
+  for (let i = 0; i < norm.length; i++) {
+    const ch = norm[i];
+
+    if (ch === ' ') {
+      chars.push({ ch, morse: null, i, kind: 'space' });
+      continue;
+    }
+
+    const code = MORSE[ch];
+    if (code) {
+      chars.push({ ch, morse: code, i, kind: 'char' });
+    } else {
+      chars.push({ ch, morse: null, i, kind: 'unknown' });
+      unknown++;
+    }
+  }
+
+  return { chars, norm, unknown };
+}
+
+/* ============================================================
+   Символы → временная шкала событий
+   ============================================================ */
+function buildEvents(chars, unit) {
+  const events = [];
+  let t = 0;
+  let prevWasChar = false;
+
+  for (const c of chars) {
+    if (c.kind === 'space') {
+      t += 7 * unit;          // межсловный интервал
+      prevWasChar = false;
+      continue;
+    }
+    if (c.kind === 'unknown') continue;
+
+    if (prevWasChar) t += 3 * unit;   // межсимвольный интервал
+
+    for (let j = 0; j < c.morse.length; j++) {
+      const sym = c.morse[j];
+      const dur = sym === '.' ? unit : 3 * unit;
+
+      events.push({
+        start: t,
+        dur,
+        sym,
+        symIdx: j,
+        charIdx: c.i,
+        ch: c.ch
+      });
+
+      t += dur;
+      if (j < c.morse.length - 1) t += unit;   // интервал внутри символа
+    }
+
+    prevWasChar = true;
+  }
+
+  return events;
+}
+
+/* ============================================================
+   Web Audio — планирование сигналов
+   ============================================================ */
+function scheduleEvents(ctx, events, freq, volume, t0) {
+  const osc = ctx.createOscillator();
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, t0);
+
+  const gain = ctx.createGain();
+  gain.gain.setValueAtTime(0, t0);
+
+  osc.connect(gain);
+  gain.connect(ctx.destination);
+
+  let end = t0;
+
+  for (const e of events) {
+    const s = t0 + e.start;
+    const d = e.dur;
+    const ramp = Math.min(0.004, d / 4);
+
+    gain.gain.setValueAtTime(0, s);
+    gain.gain.linearRampToValueAtTime(volume, s + ramp);
+    gain.gain.setValueAtTime(volume, s + d - ramp);
+    gain.gain.linearRampToValueAtTime(0, s + d);
+
+    end = s + d;
+  }
+
+  osc.start(t0);
+  osc.stop(end + 0.05);
+
+  return { osc, gain, end };
+}
+
+function getAudioContext() {
+  if (!state.ctx) {
+    const AC = window.AudioContext || window.webkitAudioContext;
+    state.ctx = new AC();
+  }
+  return state.ctx;
+}
+
+/* ============================================================
+   Воспроизведение
+   ============================================================ */
+async function play() {
+  stopPlayback();
+
+  const raw = els.text.value;
+  if (!raw.trim()) {
+    setStatus('Введите текст или загрузите файл.', 'warn');
+    return;
+  }
+
+  let source = raw;
+  if (source.length > MAX_TEXT_LEN) {
+    source = source.slice(0, MAX_TEXT_LEN);
+    setStatus(`Текст обрезан до ${MAX_TEXT_LEN} символов.`, 'warn');
+  }
+
+  const { chars, unknown } = buildChars(source);
+  state.chars = chars;
+  state.charMap = new Map(chars.map(c => [c.i, c]));
+
+  const unit = getUnit();
+  const events = buildEvents(chars, unit);
+
+  if (!events.length) {
+    setStatus('Нет символов, которые можно закодировать.', 'warn');
+    return;
+  }
+
+  state.events = events;
+  state.total = events[events.length - 1].start + events[events.length - 1].dur;
+  state.ptr = 0;
+  state.lastCharIdx = -1;
+
+  const ctx = getAudioContext();
+  if (ctx.state === 'suspended') {
+    try { await ctx.resume(); } catch (e) {}
+  }
+
+  const t0 = ctx.currentTime + 0.08;
+  state.nodes = scheduleEvents(ctx, events, getFreq(), getVol(), t0);
+  state.t0 = t0;
+  state.playing = true;
+
+  els.playBtn.disabled = true;
+  els.stopBtn.disabled = false;
+
+  if (!unknown) {
+    setStatus(`Воспроизведение… (${events.length} сигналов, ~${state.total.toFixed(1)} с)`, 'ok');
+  } else {
+    setStatus(`Воспроизведение… Пропущено символов без кода: ${unknown}.`, 'warn');
+  }
+
+  state.raf = requestAnimationFrame(tick);
+}
+
+function tick() {
+  if (!state.playing || !state.ctx) return;
+
+  const elapsed = state.ctx.currentTime - state.t0;
+
+  if (elapsed >= state.total) {
+    finishPlayback();
+    return;
+  }
+
+  let p = state.ptr;
+  const evs = state.events;
+  while (p < evs.length && evs[p].start + evs[p].dur < elapsed) p++;
+
+  if (p !== state.ptr) {
+    state.ptr = p;
+    highlightEvent(evs[p]);
+  }
+
+  els.progressBar.style.width =
+    Math.min(100, (elapsed / state.total) * 100) + '%';
+
+  state.raf = requestAnimationFrame(tick);
+}
+
+function highlightEvent(ev) {
+  if (!ev) return;
+
+  if (ev.charIdx !== state.lastCharIdx) {
+    if (state.lastCharIdx >= 0) {
+      const prev = els.display.querySelector(`[data-i="${state.lastCharIdx}"]`);
+      if (prev) prev.classList.remove('active');
+    }
+    const el = els.display.querySelector(`[data-i="${ev.charIdx}"]`);
+    if (el) {
+      el.classList.add('active');
+      el.scrollIntoView({ block: 'nearest' });
+    }
+    state.lastCharIdx = ev.charIdx;
+  }
+
+  renderCurrent(ev);
+}
+
+function renderCurrent(ev) {
+  const c = state.charMap.get(ev.charIdx);
+  if (!c) return;
+
+  const symbols = c.morse.split('').map((s, i) => {
+    let cls = 'sym';
+    if (i === ev.symIdx) cls += ' on';
+    else if (i < ev.symIdx) cls += ' past';
+    const glyph = s === '.' ? '·' : '–';
+    return `<span class="${cls}">${glyph}</span>`;
+  }).join('');
+
+  els.current.innerHTML =
+    `<div class="cur-letter">${escapeHtml(c.ch)}</div>` +
+    `<div class="cur-morse">${symbols}</div>`;
+}
+
+function finishPlayback() {
+  if (state.raf) cancelAnimationFrame(state.raf);
+  state.raf = null;
+  state.playing = false;
+
+  if (state.nodes) {
+    try { state.nodes.osc.onended = null; } catch (e) {}
+    state.nodes = null;
+  }
+
+  resetVisual();
+  els.playBtn.disabled = false;
+  els.stopBtn.disabled = true;
+  els.progressBar.style.width = '100%';
+  setStatus('Готово.', 'ok');
+}
+
+function stopPlayback() {
+  if (state.raf) cancelAnimationFrame(state.raf);
+  state.raf = null;
+
+  if (state.nodes) {
+    try {
+      state.nodes.osc.onended = null;
+      state.nodes.osc.stop();
+      state.nodes.osc.disconnect();
+      state.nodes.gain.disconnect();
+    } catch (e) {}
+    state.nodes = null;
+  }
+
+  const wasPlaying = state.playing;
+  state.playing = false;
+
+  if (wasPlaying) {
+    resetVisual();
+    els.playBtn.disabled = false;
+    els.stopBtn.disabled = true;
+    els.progressBar.style.width = '0%';
+    setStatus('Остановлено.', '');
+  }
+}
+
+function resetVisual() {
+  if (state.lastCharIdx >= 0) {
+    const prev = els.display.querySelector(`[data-i="${state.lastCharIdx}"]`);
+    if (prev) prev.classList.remove('active');
+  }
+  state.lastCharIdx = -1;
+  els.current.innerHTML = '<span class="idle">Ожидание…</span>';
+}
+
+/* ============================================================
+   Визуализация текста
+   ============================================================ */
+function renderDisplay() {
+  let source = els.text.value;
+  if (source.length > MAX_TEXT_LEN) source = source.slice(0, MAX_TEXT_LEN);
+
+  const { chars, unknown } = buildChars(source);
+  state.chars = chars;
+  state.charMap = new Map(chars.map(c => [c.i, c]));
+  state.lastCharIdx = -1;
+
+  const frag = document.createDocumentFragment();
+  const n = Math.min(chars.length, MAX_RENDER);
+
+  for (let k = 0; k < n; k++) {
+    const c = chars[k];
+    const span = document.createElement('span');
+
+    if (c.kind === 'char') {
+      span.className = 'ch';
+      span.dataset.i = c.i;
+      span.innerHTML =
+        `<span class="ltr">${escapeHtml(c.ch)}</span>` +
+        `<span class="mor">${c.morse.replace(/\./g, '·').replace(/-/g, '–')}</span>`;
+    } else if (c.kind === 'space') {
+      span.className = 'ch space';
+      span.innerHTML = `<span class="ltr">&nbsp;</span><span class="mor"></span>`;
+    } else {
+      span.className = 'ch unknown';
+      span.title = 'Для этого символа нет кода Морзе';
+      span.innerHTML =
+        `<span class="ltr">${escapeHtml(c.ch)}</span>` +
+        `<span class="mor">?</span>`;
+    }
+
+    frag.appendChild(span);
+  }
+
+  els.display.innerHTML = '';
+  els.display.appendChild(frag);
+  els.current.innerHTML = '<span class="idle">Ожидание…</span>';
+
+  const notes = [];
+  if (chars.length > MAX_RENDER) {
+    notes.push(`Показаны первые ${MAX_RENDER} из ${chars.length} символов.`);
+  }
+  if (unknown > 0) {
+    notes.push(`Символов без кода Морзе: ${unknown} (будут пропущены).`);
+  }
+  els.note.textContent = notes.join(' ');
+
+  // индикатор на вкладке "Воспроизведение"
+  const hasContent = chars.some(c => c.kind === 'char');
+  document.querySelector('[data-tab="play"]').classList.toggle('has-content', hasContent);
+}
+
+/* ============================================================
+   Загрузка файла
+   ============================================================ */
+function loadFile(file) {
+  if (!file) return;
+
+  const isText =
+    /\.(txt|md|csv|log|text)$/i.test(file.name) ||
+    (file.type && file.type.startsWith('text/'));
+
+  if (!isText) {
+    setStatus('Поддерживаются только текстовые файлы (.txt, .md, .csv, .log).', 'err');
+    return;
+  }
+
+  const reader = new FileReader();
+
+  reader.onload = () => {
+    els.text.value = String(reader.result || '');
+    els.fileName.textContent = file.name;
+    renderDisplay();
+    setStatus(`Загружен файл: ${file.name}`, 'ok');
+  };
+
+  reader.onerror = () => setStatus('Не удалось прочитать файл.', 'err');
+
+  reader.readAsText(file, 'UTF-8');
+}
+
+/* ============================================================
+   Экспорт в WAV
+   ============================================================ */
+function audioBufferToWav(buffer) {
+  const numCh = buffer.numberOfChannels;
+  const sr = buffer.sampleRate;
+  const len = buffer.length;
+  const bps = 2;
+  const blockAlign = numCh * bps;
+  const dataSize = len * blockAlign;
+
+  const ab = new ArrayBuffer(44 + dataSize);
+  const view = new DataView(ab);
+
+  const writeStr = (off, s) => {
+    for (let i = 0; i < s.length; i++) view.setUint8(off + i, s.charCodeAt(i));
+  };
+
+  writeStr(0, 'RIFF');
+  view.setUint32(4, 36 + dataSize, true);
+  writeStr(8, 'WAVE');
+  writeStr(12, 'fmt ');
+  view.setUint32(16, 16, true);
+  view.setUint16(20, 1, true);
+  view.setUint16(22, numCh, true);
+  view.setUint32(24, sr, true);
+  view.setUint32(28, sr * blockAlign, true);
+  view.setUint16(32, blockAlign, true);
+  view.setUint16(34, 16, true);
+  writeStr(36, 'data');
+  view.setUint32(40, dataSize, true);
+
+  const channels = [];
+  for (let c = 0; c < numCh; c++) channels.push(buffer.getChannelData(c));
+
+  let off = 44;
+  for (let i = 0; i < len; i++) {
+    for (let c = 0; c < numCh; c++) {
+      let s = Math.max(-1, Math.min(1, channels[c][i]));
+      view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7FFF, true);
+      off += 2;
+    }
+  }
+
+  return new Blob([ab], { type: 'audio/wav' });
+}
+
+async function downloadWav() {
+  const raw = els.text.value;
+  if (!raw.trim()) {
+    setStatus('Нечего экспортировать — введите текст.', 'warn');
+    return;
+  }
+
+  let source = raw;
+  if (source.length > MAX_TEXT_LEN) source = source.slice(0, MAX_TEXT_LEN);
+
+  const { chars } = buildChars(source);
+  const unit = getUnit();
+  const events = buildEvents(chars, unit);
+
+  if (!events.length) {
+    setStatus('Нет символов для экспорта.', 'warn');
+    return;
+  }
+
+  const total = events[events.length - 1].start + events[events.length - 1].dur;
+
+  if (total > 600) {
+    setStatus('Слишком длинный файл (>10 мин). Сократите текст.', 'err');
+    return;
+  }
+
+  els.wavBtn.disabled = true;
+  setStatus('Рендеринг WAV…', '');
+
+  try {
+    const sr = 44100;
+    const duration = total + 0.3;
+    const OfflineCtx = window.OfflineAudioContext || window.webkitOfflineAudioContext;
+    const off = new OfflineCtx(1, Math.ceil(duration * sr), sr);
+
+    scheduleEvents(off, events, getFreq(), getVol(), 0);
+
+    const rendered = await off.startRendering();
+    const blob = audioBufferToWav(rendered);
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    const base = els.fileName.textContent
+      ? els.fileName.textContent.replace(/\.[^.]+$/, '')
+      : 'morse';
+    a.href = url;
+    a.download = `${base}_${getWpm()}wpm.wav`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 4000);
+
+    setStatus('WAV-файл готов и скачан.', 'ok');
+  } catch (err) {
+    console.error(err);
+    setStatus('Ошибка при создании WAV.', 'err');
+  } finally {
+    els.wavBtn.disabled = false;
+  }
+}
+
+/* ============================================================
+   Статус
+   ============================================================ */
+function setStatus(msg, type = '') {
+  els.status.textContent = msg;
+  els.status.className = 'status' + (type ? ' ' + type : '');
+}
+
+/* ============================================================
+   Переключение вкладок / страниц
+   ============================================================ */
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t =>
+    t.classList.toggle('active', t.dataset.tab === name)
+  );
+  document.querySelectorAll('.page').forEach(p => {
+    p.hidden = p.id !== 'page-' + name;
+  });
+
+  if (name === 'play' && !state.playing) {
+    renderDisplay();
+  }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => switchTab(tab.dataset.tab));
+});
+
+document.querySelectorAll('[data-goto]').forEach(btn => {
+  btn.addEventListener('click', () => switchTab(btn.dataset.goto));
+});
+
+/* ============================================================
+   Модальное окно настроек
+   ============================================================ */
+function openSettings() {
+  els.settingsModal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+function closeSettings() {
+  els.settingsModal.classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+els.settingsBtn.addEventListener('click', openSettings);
+els.closeSettings.addEventListener('click', closeSettings);
+els.closeSettings2.addEventListener('click', closeSettings);
+
+els.settingsModal.addEventListener('click', e => {
+  if (e.target === els.settingsModal) closeSettings();
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && els.settingsModal.classList.contains('open')) {
+    closeSettings();
+  }
+});
+
+/* ============================================================
+   Обработчики
+   ============================================================ */
+let inputTimer = null;
+els.text.addEventListener('input', () => {
+  clearTimeout(inputTimer);
+  inputTimer = setTimeout(renderDisplay, 150);
+});
+
+els.playBtn.addEventListener('click', play);
+els.stopBtn.addEventListener('click', stopPlayback);
+els.wavBtn.addEventListener('click', downloadWav);
+
+els.fileBtn.addEventListener('click', () => els.fileInput.click());
+els.fileInput.addEventListener('change', e => {
+  loadFile(e.target.files[0]);
+  e.target.value = '';
+});
+
+// Drag & drop
+['dragenter', 'dragover'].forEach(evt => {
+  els.dropzone.addEventListener(evt, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    els.dropzone.classList.add('hover');
+  });
+});
+
+['dragleave', 'drop'].forEach(evt => {
+  els.dropzone.addEventListener(evt, e => {
+    e.preventDefault();
+    e.stopPropagation();
+    els.dropzone.classList.remove('hover');
+  });
+});
+
+els.dropzone.addEventListener('drop', e => {
+  const file = e.dataTransfer.files && e.dataTransfer.files[0];
+  loadFile(file);
+});
+
+// Блокируем открытие файла браузером при промахе мимо зоны
+window.addEventListener('dragover', e => e.preventDefault());
+window.addEventListener('drop', e => e.preventDefault());
+
+// Ползунки
+els.wpm.addEventListener('input', () => {
+  els.wpmVal.textContent = els.wpm.value;
+  if (state.playing) { play(); }
+});
+
+els.freq.addEventListener('input', () => {
+  els.freqVal.textContent = els.freq.value;
+  if (state.playing && state.nodes) {
+    try {
+      state.nodes.osc.frequency.setValueAtTime(getFreq(), state.ctx.currentTime);
+    } catch (e) {}
+  }
+});
+
+els.vol.addEventListener('input', () => {
+  els.volVal.textContent = els.vol.value;
+  if (state.playing && state.nodes) {
+    try {
+      const g = state.nodes.gain.gain;
+      const now = state.ctx.currentTime;
+      g.setValueAtTime(g.value, now);
+    } catch (e) {}
+  }
+});
+
+/* ============================================================
+   Инициализация
+   ============================================================ */
+els.wpmVal.textContent = els.wpm.value;
+els.freqVal.textContent = els.freq.value;
+els.volVal.textContent = els.vol.value;
+
+renderDisplay();
+setStatus('Готово к работе. Нажмите «Воспроизвести».', '');
+</script>
+</body>
+</html>
